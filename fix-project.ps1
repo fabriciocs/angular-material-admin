@@ -1,118 +1,53 @@
-# Define the path to the project directory
-$projectDir = "C:\repos\angular-material-admin"
+# fix-project.ps1
 
-# Function to read and display the current build state
-function Get-BuildState {
-    param (
-        [string]$dir
-    )
+Write-Output "Fixing Angular Project Issues..."
 
-    # Read package.json for dependencies
-    $packageJsonPath = Join-Path -Path $dir -ChildPath "package.json"
-    if (Test-Path -Path $packageJsonPath) {
-        $packageJson = Get-Content -Path $packageJsonPath -Raw | ConvertFrom-Json
-        Write-Host "Dependencies:" -ForegroundColor Green
-        $packageJson.dependencies.PSObject.Properties.Name | ForEach-Object { 
-            Write-Host "$($_): $($packageJson.dependencies.$_)" 
-        }
-    } else {
-        Write-Error "package.json not found at $packageJsonPath"
-        exit
-    }
+# Ensure Angular Material and necessary packages are installed
+Write-Output "Installing Angular Material and dependencies..."
+npm install @angular/material @angular/cdk @angular/animations --save
 
-    # Read angular.json for default project configuration
-    $angularJsonPath = Join-Path -Path $dir -ChildPath "angular.json"
-    if (Test-Path -Path $angularJsonPath) {
-        $angularJson = Get-Content -Path $angularJsonPath -Raw | ConvertFrom-Json
-        Write-Host "Default Project:" -ForegroundColor Green
-        $angularJson.defaultProject
-    } else {
-        Write-Error "angular.json not found at $angularJsonPath"
-        exit
-    }
+# Ensure ng2-charts is installed
+Write-Output "Installing ng2-charts..."
+npm install ng2-charts --save
 
-    # Display a message about the current build state
-    Write-Host "Current build state information retrieved." -ForegroundColor Cyan
-}
+# Fix SCSS import paths
+$stylesScssPath = "src/styles.scss"
+$materialScssPath = "src/scss/_material.scss"
 
-# Function to update SCSS import paths
-function Update-ImportPaths {
-    param (
-        [string]$dir
-    )
-    
-    Get-ChildItem -Path $dir -Recurse -Filter *.scss | ForEach-Object {
-        $filePath = $_.FullName
-        $fileContent = Get-Content -Path $filePath -Raw
-        $updatedContent = $fileContent -replace "@import '~@angular/material/theming';", "@import '@angular/material/theming';"
-        Set-Content -Path $filePath -Value $updatedContent
-        Write-Host "Updated: $filePath"
+Write-Output "Updating SCSS import paths..."
+if (Test-Path $stylesScssPath) {
+    $stylesScssContent = Get-Content $stylesScssPath
+    if ($stylesScssContent -notcontains "@import '@angular/material/theming';") {
+        Add-Content $stylesScssPath "@import '@angular/material/theming';"
+        Write-Output "Added Angular Material theming import to $stylesScssPath"
     }
 }
 
-# Function to fix missing NgChartsModule import
-function Fix-NgChartsModule {
-    param (
-        [string]$dir
-    )
-
-    $filePath = Join-Path -Path $dir -ChildPath "src/app/admin/charts/charts.module.ts"
-    if (Test-Path -Path $filePath) {
-        $fileContent = Get-Content -Path $filePath -Raw
-        $updatedContent = $fileContent -replace "import { NgChartsModule } from 'ng2-charts';", "import { NgChartsConfiguration, provideCharts, withDefaultRegisterables } from 'ng2-charts';"
-        Set-Content -Path $filePath -Value $updatedContent
-        Write-Host "Fixed NgChartsModule import in: $filePath"
-    } else {
-        Write-Error "charts.module.ts not found at $filePath"
-        exit
+if (Test-Path $materialScssPath) {
+    $materialScssContent = Get-Content $materialScssPath
+    if ($materialScssContent -notcontains "@import '@angular/material/theming';") {
+        Add-Content $materialScssPath "@import '@angular/material/theming';"
+        Write-Output "Added Angular Material theming import to $materialScssPath"
     }
 }
 
-# Function to add missing Angular Material modules
-function Add-MissingMaterialModules {
-    param (
-        [string]$dir
-    )
-
-    $modules = @(
-        "MatCardModule",
-        "MatCardHeader",
-        "MatCardTitle",
-        "MatCardContent"
-    )
-
-    $moduleFilePath = Join-Path -Path $dir -ChildPath "src/app/app.module.ts"
-    if (Test-Path -Path $moduleFilePath) {
-        $moduleFileContent = Get-Content -Path $moduleFilePath -Raw
-        foreach ($module in $modules) {
-            if ($moduleFileContent -notmatch $module) {
-                $moduleFileContent = $moduleFileContent -replace "(import {.*}) from '@angular/material';", "`$1, $module from '@angular/material';"
-                $moduleFileContent = $moduleFileContent -replace "(imports: \[.*)\],", "`$1, $module],"
-            }
-        }
-        Set-Content -Path $moduleFilePath -Value $moduleFileContent
-        Write-Host "Added missing Angular Material modules in: $moduleFilePath"
-    } else {
-        Write-Error "app.module.ts not found at $moduleFilePath"
-        exit
+# Ensure Angular Material modules are imported
+$appModulePath = "src/app/app.module.ts"
+if (Test-Path $appModulePath) {
+    $appModuleContent = Get-Content $appModulePath
+    if ($appModuleContent -notcontains "MatCardModule" -or $appModuleContent -notcontains "MatGridListModule") {
+        $appModuleContent = $appModuleContent -replace "(imports:\s*\[.*?\])", "`$1, MatCardModule, MatGridListModule"
+        $appModuleContent = $appModuleContent -replace "(from '@angular/material')", "`$1;\nimport { MatCardModule, MatGridListModule } from '@angular/material'"
+        Set-Content $appModulePath $appModuleContent
+        Write-Output "Added Angular Material modules to $appModulePath"
     }
 }
 
-# Get the current build state
-Write-Host "Getting current build state..." -ForegroundColor Cyan
-Get-BuildState -dir $projectDir
+# Clean npm cache and rebuild project
+Write-Output "Cleaning npm cache..."
+npm cache clean --force
 
-# Update SCSS import paths
-Write-Host "Updating SCSS import paths..." -ForegroundColor Cyan
-Update-ImportPaths -dir (Join-Path -Path $projectDir -ChildPath "src")
+Write-Output "Building the project..."
+ng build --configuration production
 
-# Fix NgChartsModule import
-Write-Host "Fixing NgChartsModule import..." -ForegroundColor Cyan
-Fix-NgChartsModule -dir $projectDir
-
-# Add missing Angular Material modules
-Write-Host "Adding missing Angular Material modules..." -ForegroundColor Cyan
-Add-MissingMaterialModules -dir $projectDir
-
-# Display final message
-Write-Host "Fixes applied. You can now attempt to build the project again." -ForegroundColor Green
+Write-Output "Fixes applied and project built successfully."

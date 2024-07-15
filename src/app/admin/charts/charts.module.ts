@@ -14,7 +14,6 @@ import { PieChartComponent } from './pie-chart/pie-chart.component';
 import { LineChartComponent } from './line-chart/line-chart.component';
 import { DataService } from './data.service';
 import { PolarChartComponent } from './polar-chart/polar-chart.component';
-import { BaseChartDirective, provideCharts, withDefaultRegisterables } from 'ng2-charts';
 
 @NgModule({
   imports: [
@@ -22,9 +21,7 @@ import { BaseChartDirective, provideCharts, withDefaultRegisterables } from 'ng2
     ChartsRoutingModule,
     MatCardModule,
     MatGridListModule,
-    FlexLayoutModule,
-    NgChartsModule,
-    provideCharts(withDefaultRegisterables())
+    FlexLayoutModule
   ],
   declarations: [
     HomeComponent,
@@ -35,7 +32,8 @@ import { BaseChartDirective, provideCharts, withDefaultRegisterables } from 'ng2
     LineChartComponent,
     PolarChartComponent
   ],
-  providers: [DataService]
+  providers: [DataService,
+    provideCharts(withDefaultRegisterables())]
 })
 export class ChartsModule {}
 
