@@ -1,6 +1,5 @@
 @use '@angular/material' as mat;
-@import '@angular/material/theming';
-
+@import '~@angular/material/theming';
 @font-face {
     font-family: 'Fontil Sans';
     src: url('../assets/fonts/FontinSans/Fontin_Sans_R.otf') format('opentype');

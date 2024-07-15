@@ -19,7 +19,7 @@ const routes: Routes = [
 ];
 
 @NgModule({
-  imports: [RouterModule.forChild(routes)],
+  imports: [RouterModule.forChild(routes)], MatCardModule, MatGridListModule,
   exports: [RouterModule]
 })
 export class AdminRoutingModule {}

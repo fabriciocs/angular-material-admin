@@ -1,14 +1,3 @@
-# fix-project.ps1
-
-Write-Output "Fixing Angular Project Issues..."
-
-# Ensure Angular Material and necessary packages are installed
-Write-Output "Installing Angular Material and dependencies..."
-npm install @angular/material @angular/cdk @angular/animations --save
-
-# Ensure ng2-charts is installed
-Write-Output "Installing ng2-charts..."
-npm install ng2-charts --save
 
 # Fix SCSS import paths
 $stylesScssPath = "src/styles.scss"
@@ -31,15 +20,15 @@ if (Test-Path $materialScssPath) {
     }
 }
 
-# Ensure Angular Material modules are imported
-$appModulePath = "src/app/app.module.ts"
-if (Test-Path $appModulePath) {
-    $appModuleContent = Get-Content $appModulePath
-    if ($appModuleContent -notcontains "MatCardModule" -or $appModuleContent -notcontains "MatGridListModule") {
-        $appModuleContent = $appModuleContent -replace "(imports:\s*\[.*?\])", "`$1, MatCardModule, MatGridListModule"
-        $appModuleContent = $appModuleContent -replace "(from '@angular/material')", "`$1;\nimport { MatCardModule, MatGridListModule } from '@angular/material'"
-        Set-Content $appModulePath $appModuleContent
-        Write-Output "Added Angular Material modules to $appModulePath"
+# Ensure Angular Material modules are imported in all relevant module files
+$moduleFiles = Get-ChildItem -Path "src/app" -Recurse -Include "*.module.ts"
+foreach ($moduleFile in $moduleFiles) {
+    $moduleContent = Get-Content $moduleFile.FullName
+    if ($moduleContent -notcontains "MatCardModule" -or $moduleContent -notcontains "MatGridListModule") {
+        $moduleContent = $moduleContent -replace "(imports:\s*\[.*?\])", "`$1, MatCardModule, MatGridListModule"
+        $moduleContent = $moduleContent -replace "(from '@angular/material')", "`$1;\nimport { MatCardModule, MatGridListModule } from '@angular/material'"
+        Set-Content $moduleFile.FullName $moduleContent
+        Write-Output "Added Angular Material modules to $($moduleFile.FullName)"
     }
 }
 
